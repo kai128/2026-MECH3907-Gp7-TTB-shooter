@@ -1,0 +1,12 @@
+{
+  "additionalFiles": "",
+  "builtInLibrariesFolders": "C:\\Apps\\Arduino\\libraries",
+  "builtInToolsFolders": "C:\\Apps\\Arduino\\tools-builder,C:\\Apps\\Arduino\\hardware\\tools\\avr,C:\\Users\\hksdg\\AppData\\Local\\Arduino15\\packages",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "build.path=c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\MECH3907BallShooter_Code\\build,build.warn_data_percentage=75,runtime.tools.arduinoOTA.path=C:\\Users\\hksdg\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\arduinoOTA\\1.3.0,runtime.tools.arduinoOTA-1.3.0.path=C:\\Users\\hksdg\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\arduinoOTA\\1.3.0,runtime.tools.avrdude.path=C:\\Users\\hksdg\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avrdude\\6.3.0-arduino17,runtime.tools.avrdude-6.3.0-arduino17.path=C:\\Users\\hksdg\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avrdude\\6.3.0-arduino17,runtime.tools.avr-gcc.path=C:\\Users\\hksdg\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7,runtime.tools.avr-gcc-7.3.0-atmel3.6.1-arduino7.path=C:\\Users\\hksdg\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7",
+  "fqbn": "arduino:avr:uno",
+  "hardwareFolders": "C:\\Apps\\Arduino\\hardware,C:\\Users\\hksdg\\AppData\\Local\\Arduino15\\packages",
+  "otherLibrariesFolders": "C:\\Users\\hksdg\\OneDrive\\文件\\Arduino\\libraries",
+  "runtime.ide.version": "10819",
+  "sketchLocation": "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\MECH3907BallShooter_Code\\sketch.ino"
+}
