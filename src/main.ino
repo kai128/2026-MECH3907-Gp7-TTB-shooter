@@ -1,4 +1,6 @@
 #define DebugMode
+#define IRSensorDistance 100 // Distance between two IR in mm
+#define LoaderMovingDistance 150 // Distance for the loader to move when loading in mm
 #include <Wire.h>
 
 // Define the usage for Pins
@@ -28,6 +30,7 @@ float Ki = 0.0;
 float Kd = 0.0;
 
 float targetRPS[3] = {2.0, 1.0, 1.0};
+float dt[3];
 
 struct Encoder {
   uint16_t lastAngle;       // Previous raw angle (0..4095)
@@ -73,8 +76,39 @@ void setup() {
 }
  
 void loop() {
-  float dt = getEncoderData();
-  setMotorSpeed(dt);
+  getEncoderData();
+  setMotorSpeed();
+  static unsigned long IR1Time, IR2Time;
+
+  // Loader - load TTB when trigger was pressed then return
+  static bool loaderUp = false;
+  if (digitalRead(TriggerPin)) {
+    if (!loaderUp) {
+      digitalWrite(LoadDirPin, 0);
+        for (uint16_t i = 0; i < LoaderMovingDistance * 50; i++) {
+          if (!digitalRead(IR1Pin)) {
+            IR1Time = millis();
+            break;
+          }
+          digitalWrite(LoadStpPin, 0);
+          delay(10);
+      }
+    }
+    else {
+      digitalWrite(LoadDirPin, 1);
+        for (uint16_t i = 0; i < LoaderMovingDistance * 50; i++) {
+          digitalWrite(LoadStpPin, 0);
+          delay(10);
+      }
+    }
+    loaderUp = !loaderUp;
+  }
+
+  // IR sensor for meassuring relation between init V. and RPS
+  if (!digitalRead(IR1Pin)) IR1Time = millis();
+  if (!digitalRead(IR2Pin)) IR2Time = millis();
+  Serial.print("Ball_init_velocity:");
+  if (IR2Time > IR1Time)  Serial.println(IRSensorDistance / (IR2Time - IR1Time));
 }
 
 float getEncoderData() {
@@ -114,12 +148,10 @@ float getEncoderData() {
       // Store current values for next iteration
       encoderData[ch].lastAngle = rev;
       encoderData[ch].lastTime = now;
-
-      // Print the results
-      
-      
+      dt[ch] = dt_s;
     }
   }
+  // Plot the results
   Serial.print("Motor_1:");
   Serial.print(encoderData[0].rps, 2);
   Serial.print(",");
@@ -128,7 +160,6 @@ float getEncoderData() {
   Serial.print(",");
   Serial.print("Motor_3:");
   Serial.println(encoderData[2].rps, 2);
-  return dt_s;
 }
 
 
@@ -205,10 +236,9 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
 
 
 
-void setMotorSpeed(float dt) {
+void setMotorSpeed() {
   for (uint8_t ch = 0; ch < 3; ch++) {
-    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].rps, dt);
-    
+    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].rps, dt[ch]);
     analogWrite(ch + TopMotorPin, (int) pwmValue);
   }
 }
