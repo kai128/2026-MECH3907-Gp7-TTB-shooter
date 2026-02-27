@@ -116,15 +116,19 @@ float getEncoderData() {
       encoderData[ch].lastTime = now;
 
       // Print the results
-      Serial.print("ch: ");
-      Serial.print(ch);
-      Serial.print("\trev: ");
-      Serial.println(rev, 2);
-      Serial.print("\ttime: ");
-      Serial.println(now, 2);
-      return dt_s;
+      
+      
     }
   }
+  Serial.print("Motor_1:");
+  Serial.print(encoderData[0].rps, 2);
+  Serial.print(",");
+  Serial.print("Motor_2:");
+  Serial.print(encoderData[1].rps, 2);
+  Serial.print(",");
+  Serial.print("Motor_3:");
+  Serial.println(encoderData[2].rps, 2);
+  return dt_s;
 }
 
 
