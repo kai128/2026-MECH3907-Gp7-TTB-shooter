@@ -11,11 +11,9 @@
 #define TopMotorPin 9
 #define BLMotorPin 10
 #define BRMotorPin 11
+#define IR1Pin 12
+#define IR2Pin 13
 
-#ifdef DebugMode
-  #define IR1Pin 12
-  #define IR2Pin 13
-#endif
 
 #define TCA9548A_ADDR  0x70   // Default I2C address of TCA9548A
 #define AS5600_ADDR     0x36  // Fixed I2C address of AS5600
@@ -24,12 +22,35 @@
 
 #define SAMPLE_INTERVAL 100 // Sampling interval in milliseconds
 
+// ======================== PID Parameters ========================
+float Kp = 0.0;
+float Ki = 0.0;
+float Kd = 0.0;
+
+float targetRPS[3] = {2.0, 1.0, 1.0};
+
 struct Encoder {
   uint16_t lastAngle;       // Previous raw angle (0..4095)
   unsigned long lastTime;       // Previous timestamp (ms)
   float rps;                    // Last computed RPS
 };
 Encoder encoderData[3];
+
+struct PID {
+  float integral;
+  float prevError;
+};
+PID pidData[3];
+
+float getEncoderData();
+void selectTCAChannel(uint8_t channel);
+uint16_t readAS5600Angle();
+
+float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt);
+void setMotorSpeed(uint8_t motorIndex, float pwmValue);
+void configPins(float dt);
+
+
 
 
 
@@ -45,15 +66,18 @@ void setup() {
     encoderData[ch].lastAngle = readAS5600Angle();
     encoderData[ch].lastTime = millis();
     encoderData[ch].rps = 0.0;
+
+    pidData[ch].integral = 0.0;
+    pidData[ch].prevError = 0.0;
   }
 }
  
 void loop() {
-  getEncoderData(encoderReading);
-  
+  float dt = getEncoderData();
+  setMotorSpeed(dt);
 }
 
-void getEncoderData() {
+float getEncoderData() {
   static unsigned long lastPrint = 0;
   unsigned long now = millis();
 
@@ -98,6 +122,7 @@ void getEncoderData() {
       Serial.println(rev, 2);
       Serial.print("\ttime: ");
       Serial.println(now, 2);
+      return dt_s;
     }
   }
 }
@@ -138,7 +163,51 @@ uint16_t readAS5600Angle() {
   }
 }
 
+float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt) {
+  float error = setpoint - measurement;
 
+  // Proportional term
+  float P = Kp * error;
+
+  // Integral term (with anti-windup: clamp integral)
+  pidData[motorIndex].integral += error * dt;
+  // Simple integral clamping – adjust limits as needed
+  float maxIntegral = 255.0 / (Ki + 0.001);   // Rough limit based on max PWM
+  if (pidData[motorIndex].integral > maxIntegral) pidData[motorIndex].integral = maxIntegral;
+  if (pidData[motorIndex].integral < -maxIntegral) pidData[motorIndex].integral = -maxIntegral;
+  float I = Ki * pidData[motorIndex].integral;
+
+  // Derivative term (on measurement to avoid derivative kick)
+  float D = Kd * ( (measurement - (setpoint - error)) / dt );  // Actually we need previous measurement
+
+  // float D = Kd * (error - pid[motorIndex].prevError) / dt;
+  // We'll use derivative on error for simplicity:
+  D = Kd * (error - pidData[motorIndex].prevError) / dt;
+  pidData[motorIndex].prevError = error;
+
+  // Total output
+  float output = P + I + D;
+
+  // Constrain output to PWM range (0-255) – assume unidirectional with sign handled separately
+  // If your motor driver can run in both directions, you may want to allow negative output
+  // and map it to direction pins. Here we assume only forward (0 to 255).
+  if (output < 0) output = 0;
+  if (output > 255) output = 255;
+
+  return output;
+}
+
+
+
+
+
+void setMotorSpeed(float dt) {
+  for (uint8_t ch = 0; ch < 3; ch++) {
+    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].rps, dt);
+    
+    analogWrite(ch + TopMotorPin, (int) pwmValue);
+  }
+}
 
 
 
