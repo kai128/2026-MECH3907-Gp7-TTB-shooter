@@ -83,9 +83,10 @@ void loop() {
   // Loader - load TTB when trigger was pressed then return
   static bool loaderUp = false;
   if (digitalRead(TriggerPin)) {
+    static uint16_t i;
     if (!loaderUp) {
       digitalWrite(LoadDirPin, 0);
-      static uint16_t i;
+      
       for (i = 0; i < LoaderMovingDistance * 50; i++) {
         if (!digitalRead(IR1Pin)) {
           IR1Time = millis();
