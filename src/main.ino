@@ -85,20 +85,21 @@ void loop() {
   if (digitalRead(TriggerPin)) {
     if (!loaderUp) {
       digitalWrite(LoadDirPin, 0);
-        for (uint16_t i = 0; i < LoaderMovingDistance * 50; i++) {
-          if (!digitalRead(IR1Pin)) {
-            IR1Time = millis();
-            break;
-          }
-          digitalWrite(LoadStpPin, 0);
-          delay(10);
+      static uint16_t i;
+      for (i = 0; i < LoaderMovingDistance * 50; i++) {
+        if (!digitalRead(IR1Pin)) {
+          IR1Time = millis();
+          break;
+        }
+        digitalWrite(LoadStpPin, 0);
+        delay(10);
       }
     }
     else {
       digitalWrite(LoadDirPin, 1);
-        for (uint16_t i = 0; i < LoaderMovingDistance * 50; i++) {
-          digitalWrite(LoadStpPin, 0);
-          delay(10);
+      for (; i >= 0; i--) {
+        digitalWrite(LoadStpPin, 0);
+        delay(10);
       }
     }
     loaderUp = !loaderUp;
@@ -215,17 +216,13 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
   // Derivative term (on measurement to avoid derivative kick)
   float D = Kd * ( (measurement - (setpoint - error)) / dt );  // Actually we need previous measurement
 
-  // float D = Kd * (error - pid[motorIndex].prevError) / dt;
-  // We'll use derivative on error for simplicity:
   D = Kd * (error - pidData[motorIndex].prevError) / dt;
   pidData[motorIndex].prevError = error;
 
   // Total output
   float output = P + I + D;
 
-  // Constrain output to PWM range (0-255) – assume unidirectional with sign handled separately
-  // If your motor driver can run in both directions, you may want to allow negative output
-  // and map it to direction pins. Here we assume only forward (0 to 255).
+  // Constrain output to PWM range (0-255)
   if (output < 0) output = 0;
   if (output > 255) output = 255;
 
@@ -242,8 +239,6 @@ void setMotorSpeed() {
     analogWrite(ch + TopMotorPin, (int) pwmValue);
   }
 }
-
-
 
 
 
