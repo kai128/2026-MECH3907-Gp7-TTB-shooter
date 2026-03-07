@@ -1,3 +1,5 @@
+#include <Arduino.h>
+#line 1 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 #define DebugMode
 #define IRSensorDistance 100 // Distance between two IR in mm
 #define LoaderMovingDistance 150 // Distance for the loader to move when loading in mm
@@ -61,6 +63,15 @@ void configPins(float dt);
 
 
 
+#line 64 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+void setup();
+#line 82 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+void loop();
+#line 262 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+void setMotorSpeed();
+#line 271 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+void configPins();
+#line 64 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup() {
   Serial.begin(115200);
   while (!Serial);
