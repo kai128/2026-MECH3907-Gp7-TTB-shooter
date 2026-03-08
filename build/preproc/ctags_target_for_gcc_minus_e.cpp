@@ -2,16 +2,17 @@
 
 
 
-# 5 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino" 2
+
+# 6 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino" 2
 
 // Define the usage for Pins
-# 27 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 28 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 // ======================== PID Parameters ========================
-float Kp = 0.0;
-float Ki = 0.0;
-float Kd = 0.0;
+float Kp = 20;
+float Ki = 50;
+float Kd = 20;
 
-float targetRPS[3] = {2.0, 1.0, 1.0};
+float targetRPS[3] = {80, 80, 80};
 float dt[3];
 
 struct Encoder {
@@ -64,6 +65,12 @@ void setup() {
 void loop() {
   getEncoderData();
   setMotorSpeed();
+
+  if (digitalRead(3)) {
+    targetRPS[0] = 80;
+  }else {
+    targetRPS[0] = 0;
+  }
   /*
 
   static unsigned long IR1Time, IR2Time;
@@ -133,7 +140,7 @@ void loop() {
   if (IR2Time > IR1Time)  Serial.println(IRSensorDistance / (IR2Time - IR1Time));
 
   */
-# 120 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 127 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 }
 
 float getEncoderData() {
@@ -177,7 +184,7 @@ float getEncoderData() {
       // Compute RPS
       // Tons of magic numbers of signal filtering 
       float accel = (delta_rev / dt_s - encoderData[ch].rps) / dt_s;
-      if (dt_s > (0 /* Sampling interval in milliseconds*/ + 0.1) / 2000.0 && delta_rev / dt_s < 110 && delta_rev > 0.07 && ((accel)>0?(accel):-(accel)) < 12000) {
+      if (dt_s > (0 /* Sampling interval in milliseconds*/ + 0.1) / 2000.0 && delta_rev / dt_s < 110 && delta_rev > 0.07 && ((accel)>0?(accel):-(accel)) < 8000) {
         encoderData[ch].rps = delta_rev / dt_s;
       }else {encoderData[ch].rps -= (encoderData[ch].rps > 0)? 1 : 0;}
 
@@ -206,7 +213,7 @@ float getEncoderData() {
   Serial.print("Motor_3:");
 
   Serial.println(encoderData[2].rps, 2);*/
-# 187 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 194 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
   }
 
 
@@ -220,7 +227,7 @@ float getEncoderData() {
  * channel: 0..7 for the eight possible channels.
 
  */
-# 197 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 204 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void selectTCAChannel(uint8_t channel) {
   if (channel > 7) return; // Safety check
   Wire.beginTransmission(0x70 /* Default I2C address of TCA9548A*/);
@@ -235,7 +242,7 @@ void selectTCAChannel(uint8_t channel) {
  * Returns a value between 0 and 4095.
 
  */
-# 208 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 215 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 uint16_t readAS5600Angle() {
   Wire.beginTransmission(0x36 /* Fixed I2C address of AS5600*/);
   Wire.write(0x0C /* AS5600 angle register (high byte 0x0C, low byte 0x0D)*/); // Point to the high byte of the angle
@@ -280,7 +287,7 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
   float output = P + I + D;
 
   // Constrain output to PWM range (0-255)
-  if (output < 0) output = 0;
+  if (output < 15) output = 0;
   if (output > 255) output = 255;
 
   return output;
@@ -291,9 +298,10 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
 
 
 void setMotorSpeed() {
-  for (uint8_t ch = 0; ch < 3; ch++) {
-    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].rps, dt[ch]);
+  for (uint8_t ch = 0; ch < 1; ch++) {
+    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].avg2, dt[ch]);
     analogWrite(ch + 9, (int) pwmValue);
+    //analogWrite(ch + TopMotorPin, (int) 255);
   }
 }
 
