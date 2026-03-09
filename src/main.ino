@@ -1,5 +1,5 @@
 #define DebugMode
-#define IRSensorDistance 100 // Distance between two IR in mm
+#define IRSensorDistance 200 // Distance between two IR in mm
 #define LoaderMovingDistance 150 // Distance for the loader to move when loading in mm
 #define NumberOfMotor 1
 #include <Wire.h>
@@ -29,8 +29,9 @@
 float Kp = 20;
 float Ki = 50;
 float Kd = 20;
+// ================================================================
 
-float targetRPS[3] = {80, 80, 80};
+float targetRPS[3] = {40, 40, 40};
 float dt[3];
 
 struct Encoder {
@@ -68,7 +69,7 @@ void setup() {
   configPins();
   Wire.begin();
 
-  for (uint8_t ch = 0; ch < 3; ch++) {
+  for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
     selectTCAChannel(ch);
     delay(10);
     encoderData[ch].lastAngle = readAS5600Angle();
@@ -77,6 +78,21 @@ void setup() {
 
     pidData[ch].integral = 0.0;
     pidData[ch].prevError = 0.0;
+  }
+
+  // Setup motor rps using Target ball speed and rps;
+  float TargetBallSpeed = 10;
+  float TargetBallRPS = 30;
+  float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+  float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+  targetRPS[0] = TopRPS;
+  targetRPS[1] = BottomRPS;
+  targetRPS[2] = BottomRPS;
+  for (uint8_t i = 0; i < 3; i++) {
+    Serial.print("targetRPS");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(targetRPS[i]);
   }
 }
 
@@ -256,6 +272,7 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
   float output = P + I + D;
 
   // Constrain output to PWM range (0-255)
+  // output < 15 for dead zone
   if (output < 15) output = 0;
   if (output > 255) output = 255;
 

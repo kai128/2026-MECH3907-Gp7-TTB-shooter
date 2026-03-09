@@ -11,8 +11,9 @@
 float Kp = 20;
 float Ki = 50;
 float Kd = 20;
+// ================================================================
 
-float targetRPS[3] = {80, 80, 80};
+float targetRPS[3] = {40, 40, 40};
 float dt[3];
 
 struct Encoder {
@@ -50,7 +51,7 @@ void setup() {
   configPins();
   Wire.begin();
 
-  for (uint8_t ch = 0; ch < 3; ch++) {
+  for (uint8_t ch = 0; ch < 1; ch++) {
     selectTCAChannel(ch);
     delay(10);
     encoderData[ch].lastAngle = readAS5600Angle();
@@ -59,6 +60,21 @@ void setup() {
 
     pidData[ch].integral = 0.0;
     pidData[ch].prevError = 0.0;
+  }
+
+  // Setup motor rps using Target ball speed and rps;
+  float TargetBallSpeed = 10;
+  float TargetBallRPS = 30;
+  float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+  float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+  targetRPS[0] = TopRPS;
+  targetRPS[1] = BottomRPS;
+  targetRPS[2] = BottomRPS;
+  for (uint8_t i = 0; i < 3; i++) {
+    Serial.print("targetRPS");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(targetRPS[i]);
   }
 }
 
@@ -140,7 +156,7 @@ void loop() {
   if (IR2Time > IR1Time)  Serial.println(IRSensorDistance / (IR2Time - IR1Time));
 
   */
-# 127 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 143 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 }
 
 float getEncoderData() {
@@ -213,7 +229,7 @@ float getEncoderData() {
   Serial.print("Motor_3:");
 
   Serial.println(encoderData[2].rps, 2);*/
-# 194 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 210 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
   }
 
 
@@ -227,7 +243,7 @@ float getEncoderData() {
  * channel: 0..7 for the eight possible channels.
 
  */
-# 204 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 220 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void selectTCAChannel(uint8_t channel) {
   if (channel > 7) return; // Safety check
   Wire.beginTransmission(0x70 /* Default I2C address of TCA9548A*/);
@@ -242,7 +258,7 @@ void selectTCAChannel(uint8_t channel) {
  * Returns a value between 0 and 4095.
 
  */
-# 215 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 231 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 uint16_t readAS5600Angle() {
   Wire.beginTransmission(0x36 /* Fixed I2C address of AS5600*/);
   Wire.write(0x0C /* AS5600 angle register (high byte 0x0C, low byte 0x0D)*/); // Point to the high byte of the angle
@@ -287,6 +303,7 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
   float output = P + I + D;
 
   // Constrain output to PWM range (0-255)
+  // output < 15 for dead zone
   if (output < 15) output = 0;
   if (output > 255) output = 255;
 
