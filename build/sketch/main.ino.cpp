@@ -69,9 +69,9 @@ void configPins(float dt);
 void setup();
 #line 99 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void loop();
-#line 286 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 315 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setMotorSpeed();
-#line 296 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 325 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void configPins();
 #line 66 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup() {
@@ -108,6 +108,35 @@ void setup() {
 }
 
 void loop() {
+  int datainput = 0;
+  
+  if (Serial.available() > 0) {
+    datainput = Serial.read();
+    Serial.println(datainput);
+    float TargetBallSpeed = (float) datainput;
+    float TargetBallRPS = 30;
+    float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+    float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+    if (TopRPS > 80) {
+      TopRPS = 80;
+      Serial.println("Top RPS above max.");
+    }
+    if (BottomRPS > 80) {
+      BottomRPS = 80;
+      Serial.println("Bottom RPS above max.");
+    }
+    targetRPS[0] = TopRPS;
+    targetRPS[1] = BottomRPS;
+    targetRPS[2] = BottomRPS;
+    for (uint8_t i = 0; i < 3; i++) {
+      Serial.print("targetRPS");
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.println(targetRPS[i]);
+    }
+    datainput = 0;
+  }
+
   getEncoderData();
   setMotorSpeed();
   
@@ -157,7 +186,7 @@ float getEncoderData() {
   static unsigned long lastPrint = 0;
   static unsigned long lastPrint2 = 0;
   unsigned long now = millis();
-  if (now - lastPrint2 >= 30) {
+  /*if (now - lastPrint2 >= 30) {
 
     lastPrint2 = now;
     Serial.print(">Motor_1:");
@@ -166,7 +195,7 @@ float getEncoderData() {
     Serial.print(encoderData[0].avg, 2);
     Serial.print(",avg2:");
     Serial.println(encoderData[0].avg2, 2);
-  }
+  }*/
   if (now - lastPrint >= SAMPLE_INTERVAL) {
     lastPrint = now;
     for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
@@ -243,7 +272,7 @@ uint16_t readAS5600Angle() {
   Wire.beginTransmission(AS5600_ADDR);
   Wire.write(ANGLE_HIGH_REG);                   // Point to the high byte of the angle
   if (Wire.endTransmission(false) != 0) {       // Send repeated start
-    Serial.println("Error communicating with AS5600");
+    //Serial.println("Error communicating with AS5600");
     return 0;
   }
 
