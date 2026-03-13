@@ -25,12 +25,12 @@
 
 #define ANGLE_HIGH_REG  0x0C  // AS5600 angle register (high byte 0x0C, low byte 0x0D)
 
-#define SAMPLE_INTERVAL 0 // Sampling interval in milliseconds
+#define SAMPLE_INTERVAL 10 // Sampling interval in milliseconds
 
 // ======================== PID Parameters ========================
 float Kp = 20;
-float Ki = 50;
-float Kd = 20;
+float Ki = 0;
+float Kd = 2;
 // ================================================================
 
 float targetRPS[3] = {40, 40, 40};
@@ -186,7 +186,7 @@ float getEncoderData() {
   static unsigned long lastPrint = 0;
   static unsigned long lastPrint2 = 0;
   unsigned long now = millis();
-  /*if (now - lastPrint2 >= 30) {
+  if (now - lastPrint2 >= 30) {
 
     lastPrint2 = now;
     Serial.print(">Motor_1:");
@@ -195,13 +195,13 @@ float getEncoderData() {
     Serial.print(encoderData[0].avg, 2);
     Serial.print(",avg2:");
     Serial.println(encoderData[0].avg2, 2);
-  }*/
+  }
   if (now - lastPrint >= SAMPLE_INTERVAL) {
     lastPrint = now;
     for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
       // Select the desired channel on the TCA9548A
       selectTCAChannel(ch);
-      delay(2);                  // Short delay to let the mux settle
+      // delay(2);                  // Short delay to let the mux settle
 
       // Read the angle from the AS5600 on the currently active channel
       uint16_t rawAngle = readAS5600Angle();
@@ -228,7 +228,7 @@ float getEncoderData() {
       }else {encoderData[ch].rps -= (encoderData[ch].rps > 0)? 1 : 0;}
 
       // 2nd order low-pass filter
-      encoderData[ch].avg = (encoderData[ch].rps > 0)? (1-0.01) * encoderData[ch].avg + (0.01) * encoderData[ch].rps : 0;
+      encoderData[ch].avg = (encoderData[ch].rps > 0)? (1-0.1) * encoderData[ch].avg + (0.1) * encoderData[ch].rps : 0;
       encoderData[ch].avg2 = (1-0.01) * encoderData[ch].avg2 + (0.01) * encoderData[ch].avg;
 
       // Store current values for next iteration
