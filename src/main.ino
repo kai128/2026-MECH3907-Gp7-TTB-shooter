@@ -28,8 +28,8 @@
 
 // ======================== PID Parameters ========================
 float Kp = 20;
-float Ki = 0;
-float Kd = 2;
+float Ki = 0.5;
+float Kd = 5;
 // ================================================================
 
 float targetRPS[3] = {40, 40, 40};
@@ -69,7 +69,7 @@ void setup() {
   configPins();
   Wire.begin();
 
-  for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
+  for (int ch = 0; ch < NumberOfMotor; ch++) {
     selectTCAChannel(ch);
     delay(10);
     encoderData[ch].lastAngle = readAS5600Angle();
@@ -128,12 +128,12 @@ void loop() {
 
   getEncoderData();
   setMotorSpeed();
-  
+  /*
   if (digitalRead(TriggerPin)) {
     targetRPS[0] = 80;
   }else {
     targetRPS[0] = 0;
-  }
+  }*/
   /*
   static unsigned long IR1Time, IR2Time;
 
@@ -193,7 +193,7 @@ float getEncoderData() {
   }
   if (now - lastPrint >= SAMPLE_INTERVAL) {
     lastPrint = now;
-    for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
+    for (int ch = 0; ch < NumberOfMotor; ch++) {
       // Select the desired channel on the TCA9548A
       selectTCAChannel(ch);
       //delay(2);                  // Short delay to let the mux settle
@@ -238,10 +238,11 @@ float getEncoderData() {
  * Select a channel on the TCA9548A.
  * channel: 0..7 for the eight possible channels.
  */
-void selectTCAChannel(uint8_t channel) {
+void selectTCAChannel(int channel) {
   if (channel > 7) return;                     // Safety check
   Wire.beginTransmission(TCA9548A_ADDR);
-  Wire.write(0b00000001 << channel);                     // Send channel select byte
+  Wire.write(0x01 << channel);  // Send channel select byte
+  //Serial.println(0x01 << channel);                   
   Wire.endTransmission();
 }
 
@@ -305,8 +306,9 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
 
 
 void setMotorSpeed() {
-  for (int ch = 0; ch < NumberOfMotor; ch++) {
-    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].avg2, dt[ch]);
+  for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
+    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].avg, dt[ch]);
+    //Serial.println(pwmValue);
     analogWrite(ch + TopMotorPin, (int) pwmValue);
     //analogWrite(ch + TopMotorPin, (int) 255);
   }

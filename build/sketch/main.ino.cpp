@@ -30,8 +30,8 @@
 
 // ======================== PID Parameters ========================
 float Kp = 20;
-float Ki = 0;
-float Kd = 2;
+float Ki = 0.5;
+float Kd = 5;
 // ================================================================
 
 float targetRPS[3] = {40, 40, 40};
@@ -42,7 +42,6 @@ struct Encoder {
   unsigned long lastTime;       // Previous timestamp (ms)
   float rps;                    // Last computed RPS
   float avg={0};
-  float avg2={0};
 };
 Encoder encoderData[3];
 
@@ -66,22 +65,24 @@ void configPins(float dt);
 
 
 
-#line 67 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 66 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup();
-#line 100 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 99 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void loop();
-#line 309 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 241 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+void selectTCAChannel(int channel);
+#line 308 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setMotorSpeed();
 #line 319 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void configPins();
-#line 67 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 66 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup() {
   Serial.begin(115200);
   while (!Serial);
   configPins();
   Wire.begin();
 
-  for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
+  for (int ch = 0; ch < NumberOfMotor; ch++) {
     selectTCAChannel(ch);
     delay(10);
     encoderData[ch].lastAngle = readAS5600Angle();
@@ -140,12 +141,12 @@ void loop() {
 
   getEncoderData();
   setMotorSpeed();
-  
+  /*
   if (digitalRead(TriggerPin)) {
     targetRPS[0] = 80;
   }else {
     targetRPS[0] = 0;
-  }
+  }*/
   /*
   static unsigned long IR1Time, IR2Time;
 
@@ -196,8 +197,8 @@ float getEncoderData() {
       MotorString[7] = i + '1';
       RPSString[4] = i + '1';
       Serial.print(MotorString);
-      //Serial.print(encoderData[i].rps, 2);
-      Serial.print(encoderData[i].lastAngle, 2);
+      Serial.print(encoderData[i].rps, 2);
+      // Serial.print(encoderData[i].lastAngle, 2);
       Serial.print(RPSString);
       Serial.println(encoderData[i].avg, 2);
     }
@@ -205,7 +206,7 @@ float getEncoderData() {
   }
   if (now - lastPrint >= SAMPLE_INTERVAL) {
     lastPrint = now;
-    for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
+    for (int ch = 0; ch < NumberOfMotor; ch++) {
       // Select the desired channel on the TCA9548A
       selectTCAChannel(ch);
       //delay(2);                  // Short delay to let the mux settle
@@ -234,9 +235,8 @@ float getEncoderData() {
         encoderData[ch].rps = delta_rev / dt_s;
       }else {encoderData[ch].rps -= (encoderData[ch].rps > 0)? 1 : 0;}
 
-      // 2nd order low-pass filter
+      // Low-pass filter
       encoderData[ch].avg = (encoderData[ch].rps > 0)? (1-0.1) * encoderData[ch].avg + (0.1) * encoderData[ch].rps : 0;
-      encoderData[ch].avg2 = (1-0.1) * encoderData[ch].avg2 + (0.1) * encoderData[ch].avg;
 
       // Store current values for next iteration
       encoderData[ch].lastAngle = rev;
@@ -251,10 +251,11 @@ float getEncoderData() {
  * Select a channel on the TCA9548A.
  * channel: 0..7 for the eight possible channels.
  */
-void selectTCAChannel(uint8_t channel) {
+void selectTCAChannel(int channel) {
   if (channel > 7) return;                     // Safety check
   Wire.beginTransmission(TCA9548A_ADDR);
-  Wire.write(0b00000001 << channel);                     // Send channel select byte
+  Wire.write(0x01 << channel);  // Send channel select byte
+  //Serial.println(0x01 << channel);                   
   Wire.endTransmission();
 }
 
@@ -318,8 +319,9 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
 
 
 void setMotorSpeed() {
-  for (int ch = 0; ch < NumberOfMotor; ch++) {
-    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].avg2, dt[ch]);
+  for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
+    float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].avg, dt[ch]);
+    //Serial.println(pwmValue);
     analogWrite(ch + TopMotorPin, (int) pwmValue);
     //analogWrite(ch + TopMotorPin, (int) 255);
   }
