@@ -1,7 +1,8 @@
 #define DebugMode
 #define IRSensorDistance 200 // Distance between two IR in mm
 #define LoaderMovingDistance 150 // Distance for the loader to move when loading in mm
-#define NumberOfMotor 1
+#define NumberOfMotor 3
+#include <stdlib.h>
 #include <Wire.h>
 
 // Define the usage for Pins
@@ -39,7 +40,6 @@ struct Encoder {
   unsigned long lastTime;       // Previous timestamp (ms)
   float rps;                    // Last computed RPS
   float avg={0};
-  float avg2={0};
 };
 Encoder encoderData[3];
 
@@ -175,22 +175,28 @@ float getEncoderData() {
   static unsigned long lastPrint = 0;
   static unsigned long lastPrint2 = 0;
   unsigned long now = millis();
-  if (now - lastPrint2 >= 30) {
+  if (now - lastPrint2 >= 90) {
 
     lastPrint2 = now;
-    Serial.print(">Motor_1:");
-    Serial.print(encoderData[0].rps, 2);
-    Serial.print(",avg:");
-    Serial.print(encoderData[0].avg, 2);
-    Serial.print(",avg2:");
-    Serial.println(encoderData[0].avg2, 2);
+    for (int i = 0; i < NumberOfMotor; i++) {
+      char MotorString[] = ">Motor_1:";
+      char RPSString[] = ",avg1:";
+      MotorString[7] = i + '1';
+      RPSString[4] = i + '1';
+      Serial.print(MotorString);
+      Serial.print(encoderData[i].rps, 2);
+      // Serial.print(encoderData[i].lastAngle, 2);
+      Serial.print(RPSString);
+      Serial.println(encoderData[i].avg, 2);
+    }
+    
   }
   if (now - lastPrint >= SAMPLE_INTERVAL) {
     lastPrint = now;
     for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
       // Select the desired channel on the TCA9548A
       selectTCAChannel(ch);
-      // delay(2);                  // Short delay to let the mux settle
+      //delay(2);                  // Short delay to let the mux settle
 
       // Read the angle from the AS5600 on the currently active channel
       uint16_t rawAngle = readAS5600Angle();
@@ -216,29 +222,15 @@ float getEncoderData() {
         encoderData[ch].rps = delta_rev / dt_s;
       }else {encoderData[ch].rps -= (encoderData[ch].rps > 0)? 1 : 0;}
 
-      // 2nd order low-pass filter
+      // Low-pass filter
       encoderData[ch].avg = (encoderData[ch].rps > 0)? (1-0.1) * encoderData[ch].avg + (0.1) * encoderData[ch].rps : 0;
-      encoderData[ch].avg2 = (1-0.1) * encoderData[ch].avg2 + (0.1) * encoderData[ch].avg;
 
       // Store current values for next iteration
       encoderData[ch].lastAngle = rev;
       encoderData[ch].lastTime = now;
       dt[ch] = dt_s;
     }
-  // Plot the results
-  //Serial.print(">Motor_1:");
-  //Serial.print(encoderData[0].rps, 2);
-  //Serial.print(",angle:");
-  //Serial.println(encoderData[0].lastAngle, 2);
-  /*Serial.print(",");
-  Serial.print("Motor_2:");
-  Serial.print(encoderData[1].rps, 2);
-  Serial.print(",");
-  Serial.print("Motor_3:");
-  Serial.println(encoderData[2].rps, 2);*/
   }
-  
-
 }
 
 
@@ -249,7 +241,7 @@ float getEncoderData() {
 void selectTCAChannel(uint8_t channel) {
   if (channel > 7) return;                     // Safety check
   Wire.beginTransmission(TCA9548A_ADDR);
-  Wire.write(1 << channel);                     // Send channel select byte
+  Wire.write(0b00000001 << channel);                     // Send channel select byte
   Wire.endTransmission();
 }
 
@@ -261,7 +253,7 @@ uint16_t readAS5600Angle() {
   Wire.beginTransmission(AS5600_ADDR);
   Wire.write(ANGLE_HIGH_REG);                   // Point to the high byte of the angle
   if (Wire.endTransmission(false) != 0) {       // Send repeated start
-    //Serial.println("Error communicating with AS5600");
+    Serial.println("Error communicating with AS5600");
     return 0;
   }
 
@@ -313,7 +305,7 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
 
 
 void setMotorSpeed() {
-  for (uint8_t ch = 0; ch < NumberOfMotor; ch++) {
+  for (int ch = 0; ch < NumberOfMotor; ch++) {
     float pwmValue = computePID(ch, targetRPS[ch], encoderData[ch].avg2, dt[ch]);
     analogWrite(ch + TopMotorPin, (int) pwmValue);
     //analogWrite(ch + TopMotorPin, (int) 255);
