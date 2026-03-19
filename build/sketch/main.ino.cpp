@@ -29,12 +29,12 @@
 #define SAMPLE_INTERVAL 10 // Sampling interval in milliseconds
 
 // ======================== PID Parameters ========================
-float Kp = 20;
-float Ki = 0.5;
-float Kd = 5;
+float Kp = 2.8;
+float Ki = 0.17;
+float Kd = -0.05;
 // ================================================================
 
-float targetRPS[3] = {40, 40, 40};
+float targetRPS[3] = {0, 0, 0};
 float dt[3];
 
 struct Encoder {
@@ -69,11 +69,11 @@ void configPins(float dt);
 void setup();
 #line 99 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void loop();
-#line 248 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 254 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void selectTCAChannel(int channel);
-#line 315 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 321 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setMotorSpeed();
-#line 326 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 332 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void configPins();
 #line 66 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup() {
@@ -94,12 +94,12 @@ void setup() {
   }
 
   // Setup motor rps using Target ball speed and rps;
-  float TargetBallSpeed = 10;
-  float TargetBallRPS = 30;
+  float TargetBallSpeed = 5;
+  float TargetBallRPS = 40;
   float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
   float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
   targetRPS[0] = TopRPS;
-  targetRPS[1] = BottomRPS;
+  targetRPS[1] = BottomRPS * 1.12;
   targetRPS[2] = BottomRPS;
   for (uint8_t i = 0; i < 3; i++) {
     Serial.print("targetRPS");
@@ -115,12 +115,20 @@ void loop() {
   static bool loaderUp = false;
   static uint16_t loaderPos = 0;
   
+  // digitalRead(TriggerPin);
   if (Serial.available() > 0) {
     datainput = Serial.read();
     if (datainput == 0xFF) {
       loaderEnable = true;
     }
     datainput = 0;
+  }
+
+  static unsigned long lastTimeChange = 0;
+  unsigned long now = millis();
+  if (now - lastTimeChange >= 15 * 1000) {
+    lastTimeChange = now;
+    loaderEnable = true;
   }
 
   if (loaderEnable) {
@@ -130,6 +138,7 @@ void loop() {
       delay(1);
       digitalWrite(LoadStpPin, LOW);
       loaderPos++;
+      //Serial.println(loaderPos);
     }
     else {
       digitalWrite(LoadDirPin, 0);
@@ -195,22 +204,19 @@ float getEncoderData() {
   static unsigned long lastPrint = 0;
   static unsigned long lastPrint2 = 0;
   unsigned long now = millis();
-  /*if (now - lastPrint2 >= 90) {
+  if (now - lastPrint2 >= 90) {
 
     lastPrint2 = now;
+    char RPSString[] = "> avg1:";
     for (int i = 0; i < NumberOfMotor; i++) {
-      char MotorString[] = ">Motor_1:";
-      char RPSString[] = ",avg1:";
-      MotorString[7] = i + '1';
-      RPSString[4] = i + '1';
-      Serial.print(MotorString);
-      Serial.print(encoderData[i].rps, 2);
-      // Serial.print(encoderData[i].lastAngle, 2);
+      RPSString[5] = i + '1';
       Serial.print(RPSString);
-      Serial.println(encoderData[i].avg, 2);
+      Serial.print(encoderData[i].avg, 2);
+      RPSString[0] = ',';
     }
+    Serial.println();
     
-  }*/
+  }
   if (now - lastPrint >= SAMPLE_INTERVAL) {
     lastPrint = now;
     for (int ch = 0; ch < NumberOfMotor; ch++) {
