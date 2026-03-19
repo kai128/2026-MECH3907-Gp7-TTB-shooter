@@ -29,9 +29,9 @@
 #define SAMPLE_INTERVAL 10 // Sampling interval in milliseconds
 
 // ======================== PID Parameters ========================
-float Kp = 20;
-float Ki = 0.5;
-float Kd = 5;
+float Kp = 2.8;
+float Ki = 0.17;
+float Kd = -0.05;
 // ================================================================
 
 float targetRPS[3] = {40, 40, 40};
@@ -69,11 +69,11 @@ void configPins(float dt);
 void setup();
 #line 99 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void loop();
-#line 248 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 271 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void selectTCAChannel(int channel);
-#line 315 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 337 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setMotorSpeed();
-#line 326 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 348 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void configPins();
 #line 66 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup() {
@@ -94,7 +94,7 @@ void setup() {
   }
 
   // Setup motor rps using Target ball speed and rps;
-  float TargetBallSpeed = 10;
+  float TargetBallSpeed = 15;
   float TargetBallRPS = 30;
   float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
   float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
@@ -114,7 +114,31 @@ void loop() {
   static bool loaderEnable = false;
   static bool loaderUp = false;
   static uint16_t loaderPos = 0;
-  
+  static float TargetBallSpeed = 15;
+  static float TargetBallRPS = 30;
+
+  static unsigned long lastTimeChange = 0;
+  unsigned long now = millis();
+  if (now - lastTimeChange >= 30000) {
+    lastTimeChange = now;
+    TargetBallSpeed = 25 - TargetBallSpeed;
+    TargetBallRPS = 30;
+    float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+    float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+    targetRPS[0] = TopRPS;
+    targetRPS[1] = BottomRPS * 1.05;
+    targetRPS[2] = BottomRPS;
+    Serial.println("----------");
+    for (uint8_t i = 0; i < 3; i++) {
+    Serial.print("targetRPS");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(targetRPS[i]);
+  }
+  }
+
+
+  // digitalRead(TriggerPin);
   if (Serial.available() > 0) {
     datainput = Serial.read();
     if (datainput == 0xFF) {
@@ -123,6 +147,7 @@ void loop() {
     datainput = 0;
   }
 
+
   if (loaderEnable) {
     if (!loaderUp) {
       digitalWrite(LoadDirPin, 1);
@@ -130,6 +155,7 @@ void loop() {
       delay(1);
       digitalWrite(LoadStpPin, LOW);
       loaderPos++;
+      //Serial.println(loaderPos);
     }
     else {
       digitalWrite(LoadDirPin, 0);
@@ -195,22 +221,19 @@ float getEncoderData() {
   static unsigned long lastPrint = 0;
   static unsigned long lastPrint2 = 0;
   unsigned long now = millis();
-  /*if (now - lastPrint2 >= 90) {
+  if (now - lastPrint2 >= 90) {
 
     lastPrint2 = now;
+    char RPSString[] = "> avg1:";
     for (int i = 0; i < NumberOfMotor; i++) {
-      char MotorString[] = ">Motor_1:";
-      char RPSString[] = ",avg1:";
-      MotorString[7] = i + '1';
-      RPSString[4] = i + '1';
-      Serial.print(MotorString);
-      Serial.print(encoderData[i].rps, 2);
-      // Serial.print(encoderData[i].lastAngle, 2);
+      RPSString[5] = i + '1';
       Serial.print(RPSString);
-      Serial.println(encoderData[i].avg, 2);
+      Serial.print(encoderData[i].avg, 2);
+      RPSString[0] = ',';
     }
+    Serial.println();
     
-  }*/
+  }
   if (now - lastPrint >= SAMPLE_INTERVAL) {
     lastPrint = now;
     for (int ch = 0; ch < NumberOfMotor; ch++) {
@@ -305,9 +328,8 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
   float I = Ki * pidData[motorIndex].integral;
 
   // Derivative term (on measurement to avoid derivative kick)
-  float D = Kd * ( (measurement - (setpoint - error)) / dt );  // Actually we need previous measurement
+  float D = Kd * (error - pidData[motorIndex].prevError) / dt;
 
-  D = Kd * (error - pidData[motorIndex].prevError) / dt;
   pidData[motorIndex].prevError = error;
 
   // Total output
