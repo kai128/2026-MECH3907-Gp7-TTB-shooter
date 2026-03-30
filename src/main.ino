@@ -81,13 +81,13 @@ void setup() {
   }
 
   // Setup motor rps using Target ball speed and rps;
-  float TargetBallSpeed = 5;
-  float TargetBallRPS = 40;
+  float TargetBallSpeed = 100;
+  float TargetBallRPS = 50;
   float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
   float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
   targetRPS[0] = TopRPS;
-  targetRPS[1] = BottomRPS * 1.12;
-  targetRPS[2] = BottomRPS;
+  targetRPS[1] = BottomRPS * 0.8;
+  targetRPS[2] = BottomRPS * 1.2;
   for (uint8_t i = 0; i < 3; i++) {
     Serial.print("targetRPS");
     Serial.print(i);
@@ -113,7 +113,7 @@ void loop() {
 
   static unsigned long lastTimeChange = 0;
   unsigned long now = millis();
-  if (now - lastTimeChange >= 15 * 1000) {
+  if (now - lastTimeChange >= 10 * 1000) {
     lastTimeChange = now;
     loaderEnable = true;
   }
@@ -140,6 +140,29 @@ void loop() {
       loaderEnable = false;
     }
   }
+/*
+  if (loaderEnable) {
+    if (!loaderUp) {
+      digitalWrite(PitchDirPin, 1);
+      digitalWrite(PitchStpPin, HIGH);
+      delay(1);
+      digitalWrite(PitchStpPin, LOW);
+      loaderPos++;
+      //Serial.println(loaderPos);
+    }
+    else {
+      digitalWrite(PitchDirPin, 0);
+      digitalWrite(PitchStpPin, HIGH);
+      delay(1);          
+      digitalWrite(PitchStpPin, LOW);
+      loaderPos--;
+    }
+    
+    if (loaderPos >= 50 * LoaderMovingDistance || loaderPos <= 0) {
+      loaderUp = !loaderUp;
+      loaderEnable = false;
+    }
+  }*/
     
 
   getEncoderData();
