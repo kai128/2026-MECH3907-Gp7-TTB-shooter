@@ -81,13 +81,13 @@ void setup() {
   }
 
   // Setup motor rps using Target ball speed and rps;
-  float TargetBallSpeed = 100;
-  float TargetBallRPS = 50;
+  float TargetBallSpeed = 15;
+  float TargetBallRPS = 40;
   float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
   float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
   targetRPS[0] = TopRPS;
-  targetRPS[1] = BottomRPS * 0.8;
-  targetRPS[2] = BottomRPS * 1.2;
+  targetRPS[1] = BottomRPS;
+  targetRPS[2] = BottomRPS;
   for (uint8_t i = 0; i < 3; i++) {
     Serial.print("targetRPS");
     Serial.print(i);
@@ -138,6 +138,7 @@ void loop() {
     if (loaderPos >= 50 * LoaderMovingDistance || loaderPos <= 0) {
       loaderUp = !loaderUp;
       loaderEnable = false;
+
     }
   }
 /*
