@@ -60,22 +60,23 @@ uint16_t readAS5600Angle();
 float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt);
 void setMotorSpeed(uint8_t motorIndex, float pwmValue);
 void configPins(float dt);
+void setPitchAngle(uint16_t targetAngle);
+
+uint16_t pitchAngle = 488; // The angle times 10
 
 
 
-
-
-#line 66 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 67 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup();
-#line 99 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 101 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void loop();
-#line 278 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 237 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void selectTCAChannel(int channel);
-#line 345 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 304 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setMotorSpeed();
-#line 356 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 326 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void configPins();
-#line 66 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 67 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup() {
   Serial.begin(115200);
   while (!Serial);
@@ -94,7 +95,7 @@ void setup() {
   }
 
   // Setup motor rps using Target ball speed and rps;
-  float TargetBallSpeed = 12;
+  float TargetBallSpeed = 15;
   float TargetBallRPS = 40;
   float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
   float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
@@ -107,6 +108,7 @@ void setup() {
     Serial.print(": ");
     Serial.println(targetRPS[i]);
   }
+  //setPitchAngle(350);
 }
 
 void loop() {
@@ -115,14 +117,7 @@ void loop() {
   static bool loaderUp = false;
   static uint16_t loaderPos = 0;
   
-  // digitalRead(TriggerPin);
-  if (Serial.available() > 0) {
-    datainput = Serial.read();
-    if (datainput == 0xFF) {
-      loaderEnable = true;
-    }
-    datainput = 0;
-  }
+// read shooting data here
 
   static unsigned long lastTimeChange = 0;
   unsigned long now = millis();
@@ -154,42 +149,10 @@ void loop() {
 
     }
   }
-/*
-  if (loaderEnable) {
-    if (!loaderUp) {
-      digitalWrite(PitchDirPin, 1);
-      digitalWrite(PitchStpPin, HIGH);
-      delay(1);
-      digitalWrite(PitchStpPin, LOW);
-      loaderPos++;
-      //Serial.println(loaderPos);
-    }
-    else {
-      digitalWrite(PitchDirPin, 0);
-      digitalWrite(PitchStpPin, HIGH);
-      delay(1);          
-      digitalWrite(PitchStpPin, LOW);
-      loaderPos--;
-    }
     
-    if (loaderPos >= 50 * LoaderMovingDistance || loaderPos <= 0) {
-      loaderUp = !loaderUp;
-      loaderEnable = false;
-    }
-  }*/
-    
-
   getEncoderData();
-  setMotorSpeed();
+  setMotorSpeed(); 
   /*
-  if (digitalRead(TriggerPin)) {
-    targetRPS[0] = 80;
-  }else {
-    targetRPS[0] = 0;
-  }*/
-  /*
-  static unsigned long IR1Time, IR2Time;
-
   // Loader - load TTB when trigger was pressed then return
   static bool loaderUp = false;
   if (digitalRead(TriggerPin)) {
@@ -216,11 +179,7 @@ void loop() {
     loaderUp = !loaderUp;
   }
 
-  // IR sensor for meassuring relation between init V. and RPS
-  if (!digitalRead(IR1Pin)) IR1Time = millis();
-  if (!digitalRead(IR2Pin)) IR2Time = millis();
-  Serial.print("Ball_init_velocity:");
-  if (IR2Time > IR1Time)  Serial.println(IRSensorDistance / (IR2Time - IR1Time));
+
   */
 }
 
@@ -362,6 +321,17 @@ void setMotorSpeed() {
     analogWrite(ch + TopMotorPin, (int) pwmValue);
     //analogWrite(ch + TopMotorPin, (int) 255);
   }
+}
+
+void setPitchAngle(uint16_t targetAngle) {
+  bool pitchDir = (targetAngle > pitchAngle)? 1 : 0;
+  digitalWrite(PitchDirPin, pitchDir);
+  for (uint16_t i = 0; i < abs(targetAngle-pitchAngle) / 0.3; i++) {
+    digitalWrite(PitchStpPin, HIGH);
+    delay(2);
+    digitalWrite(PitchStpPin, LOW);
+  }
+  pitchAngle = targetAngle;
 }
 
 
