@@ -42,7 +42,7 @@ void setMotorSpeed(uint8_t motorIndex, float pwmValue);
 void configPins(float dt);
 void setPitchAngle(uint16_t targetAngle);
 
-uint16_t pitchAngle = 488; // The angle times 10
+int pitchAngle = 488; // The angle times 10
 
 
 
@@ -77,7 +77,7 @@ void setup() {
     Serial.print(": ");
     Serial.println(targetRPS[i]);
   }
-  //setPitchAngle(350);
+  setPitchAngle(0);
 }
 
 void loop() {
@@ -101,14 +101,16 @@ void loop() {
       digitalWrite(7, 0x1);
       delay(1);
       digitalWrite(7, 0x0);
+
       loaderPos++;
       //Serial.println(loaderPos);
     }
     else {
       digitalWrite(6, 0);
       digitalWrite(7, 0x1);
-      delay(1);
+      delay(0);
       digitalWrite(7, 0x0);
+
       loaderPos--;
     }
 
@@ -178,7 +180,7 @@ void loop() {
 
 
   */
-# 171 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 173 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 }
 
 float getEncoderData() {
@@ -248,7 +250,7 @@ float getEncoderData() {
  * channel: 0..7 for the eight possible channels.
 
  */
-# 237 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 239 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void selectTCAChannel(int channel) {
   if (channel > 7) return; // Safety check
   Wire.beginTransmission(0x70 /* Default I2C address of TCA9548A*/);
@@ -264,7 +266,7 @@ void selectTCAChannel(int channel) {
  * Returns a value between 0 and 4095.
 
  */
-# 249 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+# 251 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 uint16_t readAS5600Angle() {
   Wire.beginTransmission(0x36 /* Fixed I2C address of AS5600*/);
   Wire.write(0x0C /* AS5600 angle register (high byte 0x0C, low byte 0x0D)*/); // Point to the high byte of the angle
@@ -329,13 +331,16 @@ void setMotorSpeed() {
   }
 }
 
-void setPitchAngle(uint16_t targetAngle) {
-  bool pitchDir = (targetAngle > pitchAngle)? 1 : 0;
+void setPitchAngle(int targetAngle) {
+  bool pitchDir = (targetAngle > pitchAngle)? 0 : 1;
+  Serial.print("Delta angle: ");
+  Serial.println((targetAngle-pitchAngle));
   digitalWrite(4, pitchDir);
-  for (uint16_t i = 0; i < ((targetAngle-pitchAngle)>0?(targetAngle-pitchAngle):-(targetAngle-pitchAngle)) / 0.3; i++) {
+  for (int i = 0; i < (int) (((targetAngle-pitchAngle))>0?((targetAngle-pitchAngle)):-((targetAngle-pitchAngle))) * 120 / 20 / 18; i++) {
     digitalWrite(5, 0x1);
-    delay(2);
+    delay(8);
     digitalWrite(5, 0x0);
+    delay(2);
   }
   pitchAngle = targetAngle;
 }

@@ -60,7 +60,7 @@ void setMotorSpeed(uint8_t motorIndex, float pwmValue);
 void configPins(float dt);
 void setPitchAngle(uint16_t targetAngle);
 
-uint16_t pitchAngle = 488; // The angle times 10
+int pitchAngle = 488; // The angle times 10
 
 
 
@@ -95,7 +95,7 @@ void setup() {
     Serial.print(": ");
     Serial.println(targetRPS[i]);
   }
-  //setPitchAngle(350);
+  setPitchAngle(0);
 }
 
 void loop() {
@@ -119,14 +119,16 @@ void loop() {
       digitalWrite(LoadStpPin, HIGH);
       delay(1);
       digitalWrite(LoadStpPin, LOW);
+
       loaderPos++;
       //Serial.println(loaderPos);
     }
     else {
       digitalWrite(LoadDirPin, 0);
       digitalWrite(LoadStpPin, HIGH);
-      delay(1);          
+      delay(0);          
       digitalWrite(LoadStpPin, LOW);
+
       loaderPos--;
     }
     
@@ -310,13 +312,16 @@ void setMotorSpeed() {
   }
 }
 
-void setPitchAngle(uint16_t targetAngle) {
-  bool pitchDir = (targetAngle > pitchAngle)? 1 : 0;
+void setPitchAngle(int targetAngle) {
+  bool pitchDir = (targetAngle > pitchAngle)? 0 : 1;
+  Serial.print("Delta angle: ");
+  Serial.println((targetAngle-pitchAngle));
   digitalWrite(PitchDirPin, pitchDir);
-  for (uint16_t i = 0; i < abs(targetAngle-pitchAngle) / 0.3; i++) {
+  for (int i = 0; i < (int) abs((targetAngle-pitchAngle)) * 120 / 20 / 18; i++) {
     digitalWrite(PitchStpPin, HIGH);
-    delay(2);
+    delay(8);
     digitalWrite(PitchStpPin, LOW);
+    delay(2);
   }
   pitchAngle = targetAngle;
 }
