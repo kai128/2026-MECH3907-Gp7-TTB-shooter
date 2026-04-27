@@ -87,12 +87,15 @@ void setup() {
     pidData[ch].integral = 0.0;
     pidData[ch].prevError = 0.0;
   }
+  // 2 meter: Top: 450, 10.55; Middle: 320, 8.42;
+  // 4 meter: Middle: 200, 14.5; Bottom: 100, 11;
+  // 6 meter: Middle: ; Bottom:
   // Setup first target para
-  shootingTarget[0].speed = 10;
+  shootingTarget[0].speed = 8;
   shootingTarget[0].angle = 300;
   // Setup second target para
-  shootingTarget[1].speed = 20;
-  shootingTarget[1].angle = 0;
+  shootingTarget[1].speed = 15;
+  shootingTarget[1].angle = 200;
   // Setup motor rps using Target ball speed and rps;
   calculateSpeed(shootingTarget[0].speed);
   setPitchAngle(shootingTarget[0].angle);

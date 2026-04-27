@@ -75,15 +75,15 @@ int pitchAngle = 488; // The angle times 10
 
 #line 74 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup();
-#line 101 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 104 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void loop();
-#line 221 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 224 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void selectTCAChannel(int channel);
-#line 301 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 304 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setMotorSpeed();
-#line 310 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 313 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setPitchAngle(int targetAngle);
-#line 326 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
+#line 329 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void configPins();
 #line 74 "c:\\Users\\hksdg\\OneDrive - HKUST Connect\\26 Spring\\MECH3907\\2026-MECH3907-Gp7-TTB-shooter\\src\\main.ino"
 void setup() {
@@ -102,12 +102,15 @@ void setup() {
     pidData[ch].integral = 0.0;
     pidData[ch].prevError = 0.0;
   }
+  // 2 meter: Top: 450, 10.55; Middle: 320, 8.42;
+  // 4 meter: Middle: 200, 14.5; Bottom: 100, 11;
+  // 6 meter: Middle: ; Bottom:
   // Setup first target para
-  shootingTarget[0].speed = 10;
+  shootingTarget[0].speed = 8;
   shootingTarget[0].angle = 300;
   // Setup second target para
-  shootingTarget[1].speed = 20;
-  shootingTarget[1].angle = 0;
+  shootingTarget[1].speed = 15;
+  shootingTarget[1].angle = 200;
   // Setup motor rps using Target ball speed and rps;
   calculateSpeed(shootingTarget[0].speed);
   setPitchAngle(shootingTarget[0].angle);
