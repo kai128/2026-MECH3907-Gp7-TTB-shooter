@@ -80,22 +80,24 @@ void setup() {
   for (int ch = 0; ch < NumberOfMotor; ch++) {
     selectTCAChannel(ch);
     delay(10);
+    Serial.println(ch);
     encoderData[ch].lastAngle = readAS5600Angle();
+    
     encoderData[ch].lastTime = millis();
     encoderData[ch].rps = 0.0;
 
     pidData[ch].integral = 0.0;
     pidData[ch].prevError = 0.0;
   }
-  // 2 meter: Top: 450, 10.55; Middle: 320, 8.42;
-  // 4 meter: Middle: 200, 14.5; Bottom: 100, 11;
-  // 6 meter: Middle: ; Bottom:
+  // 2 meter: Top: 450, 10.55; Middle: 320, 8.42; Bottom: 100, 6.5
+  // 4 meter: Top: ; Middle: 200, 14.5; Bottom: 100, 11;
+  // 6 meter: Top: 300, 18; Middle: 230, 17.9; Bottom: 180, 16.5
   // Setup first target para
-  shootingTarget[0].speed = 8;
-  shootingTarget[0].angle = 300;
+  shootingTarget[0].angle = 450;
+  shootingTarget[0].speed = 10.55;
   // Setup second target para
-  shootingTarget[1].speed = 15;
-  shootingTarget[1].angle = 200;
+  shootingTarget[1].angle = 100;
+  shootingTarget[1].speed = 6.5;
   // Setup motor rps using Target ball speed and rps;
   calculateSpeed(shootingTarget[0].speed);
   setPitchAngle(shootingTarget[0].angle);
@@ -111,11 +113,13 @@ void loop() {
   // Check if shooter is ready
   bool shooterReady = true;
   for (uint8_t i = 0; i < NumberOfMotor; i++) {
-    if (encoderData[i].rps < targetRPS[i] * 0.95 || encoderData[i].rps > targetRPS[i] * 1.05 ) {
+    if (encoderData[i].rps < targetRPS[i] * 0.90 || encoderData[i].rps > targetRPS[i] * 1.1 ) {
       shooterReady = false;
     }
-    shooterReady &= !loaderUp;
+    
   }
+  shooterReady &= !loaderUp;
+  shooterReady &= !loaderEnable;
   digitalWrite(GreenLEDPin, shooterReady);
   // Loader - load TTB when trigger was pressed then return
   if (digitalRead(TriggerPin) && shooterReady) {
@@ -182,8 +186,11 @@ float getEncoderData() {
       //delay(2);                  // Short delay to let the mux settle
 
       // Read the angle from the AS5600 on the currently active channel
+      
+      
+      //Serial.println(ch);
       uint16_t rawAngle = readAS5600Angle();
-
+      
 
       // Calculate time difference (seconds)
       unsigned long dt_ms = now - encoderData[ch].lastTime;
@@ -222,9 +229,10 @@ float getEncoderData() {
  * channel: 0..7 for the eight possible channels.
  */
 void selectTCAChannel(int channel) {
+  int channelIndex[] = {0, 4, 2};
   if (channel > 7) return;                     // Safety check
   Wire.beginTransmission(TCA9548A_ADDR);
-  Wire.write(0x01 << channel);  // Send channel select byte
+  Wire.write(0x01 << channelIndex[channel]);  // Send channel select byte
   //Serial.println(0x01 << channel);                   
   Wire.endTransmission();
 }
