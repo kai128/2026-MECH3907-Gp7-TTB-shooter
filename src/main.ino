@@ -72,6 +72,7 @@ int pitchAngle = 488; // The angle times 10
 
 
 void setup() {
+  delay(2000);
   Serial.begin(115200);
   while (!Serial);
   configPins();
@@ -89,15 +90,15 @@ void setup() {
     pidData[ch].integral = 0.0;
     pidData[ch].prevError = 0.0;
   }
-  // 2 meter: Top: 450, 10.55; Middle: 320, 8.42; Bottom: 100, 6.5
-  // 4 meter: Top: ; Middle: 200, 14.5; Bottom: 100, 11;
-  // 6 meter: Top: 300, 18; Middle: 230, 17.9; Bottom: 180, 16.5
+  // 2 meter: Top: 450, 10.55; Middle: 190, 10; Bottom: 100, 6.35
+  // 4 meter: Top: ; Middle: 200, 14.3; Bottom: 100, 12.83;
+  // 6 meter: Top: 300, 18; Middle: 230/225, 17.5; Bottom: 150, 17.5
   // Setup first target para
-  shootingTarget[0].angle = 450;
-  shootingTarget[0].speed = 10.55;
+  shootingTarget[0].angle = 190;
+  shootingTarget[0].speed = 10;
   // Setup second target para
   shootingTarget[1].angle = 100;
-  shootingTarget[1].speed = 6.5;
+  shootingTarget[1].speed = 6.35;
   // Setup motor rps using Target ball speed and rps;
   calculateSpeed(shootingTarget[0].speed);
   setPitchAngle(shootingTarget[0].angle);
