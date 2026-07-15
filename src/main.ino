@@ -1,4 +1,3 @@
-#define DebugMode
 #define IRSensorDistance 200 // Distance between two IR in mm
 #define LoaderMovingDistance 73 // Distance for the loader to move when loading in mm
 #define NumberOfMotor 3
@@ -35,6 +34,13 @@ float Kd = -0.05;
 float targetRPS[3] = {0, 0, 0};
 float dt[3];
 
+struct Target {
+  float speed;
+  int angle;
+};
+Target shootingTarget[2];
+
+
 struct Encoder {
   float lastAngle;       // Previous raw angle (0..4095)
   unsigned long lastTime;       // Previous timestamp (ms)
@@ -59,43 +65,43 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
 void setMotorSpeed(uint8_t motorIndex, float pwmValue);
 void configPins(float dt);
 void setPitchAngle(uint16_t targetAngle);
+void calculateSpeed(float TargetBallSpeed);
 
 int pitchAngle = 488; // The angle times 10
 
 
 
 void setup() {
+  delay(2000);
   Serial.begin(115200);
   while (!Serial);
   configPins();
   Wire.begin();
-
+  digitalWrite(GreenLEDPin, 0);
   for (int ch = 0; ch < NumberOfMotor; ch++) {
     selectTCAChannel(ch);
     delay(10);
+    Serial.println(ch);
     encoderData[ch].lastAngle = readAS5600Angle();
+    
     encoderData[ch].lastTime = millis();
     encoderData[ch].rps = 0.0;
 
     pidData[ch].integral = 0.0;
     pidData[ch].prevError = 0.0;
   }
-
+  // 2 meter: Top: 450, 10.55; Middle: 190, 10; Bottom: 100, 6.35
+  // 4 meter: Top: ; Middle: 200, 14.3; Bottom: 100, 12.83;
+  // 6 meter: Top: 300, 18; Middle: 230/225, 17.5; Bottom: 150, 17.5
+  // Setup first target para
+  shootingTarget[0].angle = 190;
+  shootingTarget[0].speed = 10;
+  // Setup second target para
+  shootingTarget[1].angle = 100;
+  shootingTarget[1].speed = 6.35;
   // Setup motor rps using Target ball speed and rps;
-  float TargetBallSpeed = 15;
-  float TargetBallRPS = 40;
-  float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
-  float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
-  targetRPS[0] = TopRPS;
-  targetRPS[1] = BottomRPS;
-  targetRPS[2] = BottomRPS;
-  for (uint8_t i = 0; i < 3; i++) {
-    Serial.print("targetRPS");
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.println(targetRPS[i]);
-  }
-  setPitchAngle(0);
+  calculateSpeed(shootingTarget[0].speed);
+  setPitchAngle(shootingTarget[0].angle);
 }
 
 void loop() {
@@ -103,16 +109,23 @@ void loop() {
   static bool loaderEnable = false;
   static bool loaderUp = false;
   static uint16_t loaderPos = 0;
-  
-// read shooting data here
+  static bool targetNum = 0;
 
-  static unsigned long lastTimeChange = 0;
-  unsigned long now = millis();
-  if (now - lastTimeChange >= 10 * 1000) {
-    lastTimeChange = now;
+  // Check if shooter is ready
+  bool shooterReady = true;
+  for (uint8_t i = 0; i < NumberOfMotor; i++) {
+    if (encoderData[i].rps < targetRPS[i] * 0.90 || encoderData[i].rps > targetRPS[i] * 1.1 ) {
+      shooterReady = false;
+    }
+    
+  }
+  shooterReady &= !loaderUp;
+  shooterReady &= !loaderEnable;
+  digitalWrite(GreenLEDPin, shooterReady);
+  // Loader - load TTB when trigger was pressed then return
+  if (digitalRead(TriggerPin) && shooterReady) {
     loaderEnable = true;
   }
-
   if (loaderEnable) {
     if (!loaderUp) {
       digitalWrite(LoadDirPin, 1);
@@ -126,7 +139,7 @@ void loop() {
     else {
       digitalWrite(LoadDirPin, 0);
       digitalWrite(LoadStpPin, HIGH);
-      delay(0);          
+      delay(1);          
       digitalWrite(LoadStpPin, LOW);
 
       loaderPos--;
@@ -134,42 +147,19 @@ void loop() {
     
     if (loaderPos >= 50 * LoaderMovingDistance || loaderPos <= 0) {
       loaderUp = !loaderUp;
-      loaderEnable = false;
-
+      if (!loaderUp) {
+        loaderEnable = false;
+        targetNum = !targetNum;
+        calculateSpeed(shootingTarget[targetNum].speed);
+        setPitchAngle(shootingTarget[targetNum].angle);
+        
+      }
     }
   }
+
     
   getEncoderData();
-  setMotorSpeed(); 
-  /*
-  // Loader - load TTB when trigger was pressed then return
-  static bool loaderUp = false;
-  if (digitalRead(TriggerPin)) {
-    static uint16_t i;
-    if (!loaderUp) {
-      digitalWrite(LoadDirPin, 0);
-      
-      for (i = 0; i < LoaderMovingDistance * 50; i++) {
-        if (!digitalRead(IR1Pin)) {
-          IR1Time = millis();
-          break;
-        }
-        digitalWrite(LoadStpPin, 0);
-        delay(10);
-      }
-    }
-    else {
-      digitalWrite(LoadDirPin, 1);
-      for (; i >= 0; i--) {
-        digitalWrite(LoadStpPin, 0);
-        delay(10);
-      }
-    }
-    loaderUp = !loaderUp;
-  }
-
-
-  */
+  setMotorSpeed();
 }
 
 float getEncoderData() {
@@ -197,8 +187,11 @@ float getEncoderData() {
       //delay(2);                  // Short delay to let the mux settle
 
       // Read the angle from the AS5600 on the currently active channel
+      
+      
+      //Serial.println(ch);
       uint16_t rawAngle = readAS5600Angle();
-
+      
 
       // Calculate time difference (seconds)
       unsigned long dt_ms = now - encoderData[ch].lastTime;
@@ -237,9 +230,10 @@ float getEncoderData() {
  * channel: 0..7 for the eight possible channels.
  */
 void selectTCAChannel(int channel) {
+  int channelIndex[] = {0, 4, 2};
   if (channel > 7) return;                     // Safety check
   Wire.beginTransmission(TCA9548A_ADDR);
-  Wire.write(0x01 << channel);  // Send channel select byte
+  Wire.write(0x01 << channelIndex[channel]);  // Send channel select byte
   //Serial.println(0x01 << channel);                   
   Wire.endTransmission();
 }
@@ -300,7 +294,20 @@ float computePID(uint8_t motorIndex, float setpoint, float measurement, float dt
 }
 
 
-
+void calculateSpeed(float TargetBallSpeed) {
+  float TargetBallRPS = 40;
+  float TopRPS = (TargetBallSpeed * 2 / 0.25 + TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+  float BottomRPS = (TargetBallSpeed * 2 / 0.25 - TargetBallRPS * (0.04 * 3.14) / 0.25) / 2;
+  targetRPS[0] = TopRPS;
+  targetRPS[1] = BottomRPS;
+  targetRPS[2] = BottomRPS;
+  for (uint8_t i = 0; i < 3; i++) {
+    Serial.print("targetRPS");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(targetRPS[i]);
+  }
+}
 
 
 void setMotorSpeed() {
